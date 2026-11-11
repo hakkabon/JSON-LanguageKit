@@ -21,6 +21,13 @@ struct JSONProviderTests {
         #expect(recovered.evidence(for: "lexing")?.strategy == .incremental)
         #expect(recovered.diagnostics.contains { $0.expected == [","] })
         #expect(!recovered.recoveryEdits.isEmpty)
+        #expect(recovered.recoveryEdits.contains {
+            if case .insert(let terminal, let offset) = $0.action {
+                return terminal == "," && offset > 0
+            }
+            return false
+        })
+        #expect(recovered.recoveryEdits.allSatisfy { $0.diagnosticID != nil })
     }
 
     @Test func formatsAndPublishesSemanticTokens() async throws {

@@ -247,27 +247,37 @@ private struct JSONStructureParser {
     }
 
     private mutating func insert(_ terminal: String, message: String) {
-        diagnostics.append(.init(
+        let diagnostic = LanguageProviderDiagnostic(
             severity: .error, message: message,
             range: SourceRange(location: currentRange.location, length: 0),
-            expected: [terminal]))
-        recoveryEdits.append(.insert(terminal: terminal, atToken: index))
+            expected: [terminal])
+        diagnostics.append(diagnostic)
+        recoveryEdits.append(.init(
+            action: .insert(
+                terminal: terminal, atUTF16Offset: currentRange.location),
+            expected: [terminal], diagnosticID: diagnostic.id))
     }
 
     private mutating func deleteCurrent(_ message: String) {
-        diagnostics.append(.init(
-            severity: .error, message: message, range: currentRange))
-        recoveryEdits.append(.delete(terminal: current, atToken: index))
+        let diagnostic = LanguageProviderDiagnostic(
+            severity: .error, message: message, range: currentRange)
+        diagnostics.append(diagnostic)
+        recoveryEdits.append(.init(
+            action: .delete(terminal: current, range: currentRange),
+            diagnosticID: diagnostic.id))
         advance()
     }
 
     private mutating func trailingComma(before closing: String) {
         let commaIndex = max(0, index - 1)
         let range = tokens[commaIndex].range
-        diagnostics.append(.init(
+        let diagnostic = LanguageProviderDiagnostic(
             severity: .error,
             message: "Trailing comma is not allowed before '\(closing)'",
-            range: SourceRange(range.lowerBound, range.upperBound)))
-        recoveryEdits.append(.delete(terminal: ",", atToken: commaIndex))
+            range: SourceRange(range.lowerBound, range.upperBound))
+        diagnostics.append(diagnostic)
+        recoveryEdits.append(.init(
+            action: .delete(terminal: ",", range: diagnostic.range),
+            diagnosticID: diagnostic.id))
     }
 }
